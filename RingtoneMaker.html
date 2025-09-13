@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rina’s iPhone Ringtone Maker ♡</title>
+<meta name="theme-color" content="#ffb3d9">
+<style>
+  /* ===== Rina Theme (Girly Pastels) ===== */
+  :root{
+    /* Base palette */
+    --bg:#fff7fb;               /* blush */
+    --card:#ffeef7;             /* light rose */
+    --fg:#5a3a4b;               /* plum text */
+    --muted:#8b6b7a;            /* muted plum */
+    --accent:#ff73b3;           /* pink */
+    --accent2:#b388ff;          /* lilac */
+    --accent3:#ffcfdf;          /* cotton candy */
+    --ring:#ffc2e6;             /* soft outline */
+    --shadow: 0 10px 24px rgba(255,115,179,.25);
+
+    /* Waveform-specific */
+    --wave-bg:#ffe6f2;
+    --wave-mid:#f8bad4;
+    --wave-bar:#ff73b3;         /* bars */
+    --select-fill: rgba(255,115,179,.16);
+    --select-stroke:#ff73b3;
+    --playline:#7ee787;         /* green for visibility */
+  }
+
+  html,body{
+    background:
+      radial-gradient(1200px 600px at -10% -10%, #fff 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #fff 0%, transparent 55%),
+      linear-gradient(180deg, #fff8fc 0%, var(--bg) 100%);
+    color:var(--fg);
+    font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    margin:0;
+  }
+
+  .wrap{max-width:920px;margin:28px auto;padding:0 16px}
+  header{display:flex;align-items:center;gap:14px;margin:18px 0 12px;}
+  .logo{
+    width:44px;height:44px;border-radius:50%;
+    background: conic-gradient(from 210deg, var(--accent), var(--accent2), var(--accent3), var(--accent));
+    box-shadow: var(--shadow);
+    position:relative;
+  }
+  .logo::after{
+    content:"♡"; position:absolute; inset:0; display:grid; place-items:center;
+    color:#fff; font-weight:700; font-size:22px; text-shadow:0 2px 8px rgba(0,0,0,.15);
+  }
+  h1{font-size:1.35rem;margin:0}
+  .subtitle{color:var(--muted); margin-top:2px}
+
+  fieldset{
+    border:1px solid var(--ring);
+    border-radius:16px;
+    padding:14px 16px;
+    margin:16px 0;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  legend{
+    color:var(--muted);
+    padding:0 8px;
+    font-weight:600;
+    letter-spacing:.2px;
+  }
+
+  .row{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;margin:8px 0}
+  .controls{display:flex;flex-wrap:wrap;gap:10px}
+
+  button{
+    padding:10px 14px;
+    border:1px solid var(--ring);
+    border-radius:999px;
+    background:
+      linear-gradient(180deg, #fff 0%, #ffe6f2 100%);
+    color:var(--fg);
+    cursor:pointer;
+    font-weight:600;
+    box-shadow: var(--shadow);
+    transition: transform .08s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  button:hover{ transform: translateY(-1px); border-color: var(--accent3); }
+  button:active{ transform: translateY(0); }
+  button:disabled{opacity:.55;cursor:not-allowed; box-shadow:none}
+
+  /* Primary action */
+  #exportBtn, #playSel{
+    background: linear-gradient(180deg, #ffd5ea 0%, #ffb3d9 100%);
+    color:#541a35; border-color:#ff9fd0;
+  }
+  #exportBtn:hover, #playSel:hover{ border-color:#ff73b3; }
+
+  input[type="file"]{
+    border:1px dashed var(--ring);
+    background: #fff;
+    color:var(--fg);
+    border-radius:14px;
+    padding:10px 12px;
+    width:100%;
+  }
+
+  input[type="number"]{
+    background:#fff;
+    color:var(--fg);
+    border:1px solid var(--ring);
+    border-radius:12px;
+    padding:8px 10px;
+    width:140px;
+    box-shadow: inset 0 1px 0 #fff, 0 0 0 3px transparent;
+    transition: box-shadow .2s ease, border-color .2s ease;
+  }
+  input[type="number"]:focus{
+    outline:none;
+    border-color:#ffb3d9;
+    box-shadow: 0 0 0 4px rgba(255,179,217,.25);
+  }
+
+  .muted{color:var(--muted)}
+  .mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  #status{min-height:1.3em;margin-top:6px}
+
+  /* Waveform area */
+  .wave-wrap{position:relative;user-select:none;-webkit-user-select:none; margin-top:6px}
+  #wave{background:var(--wave-bg)}
+  #overlay{background:transparent}
+  canvas{display:block;width:100%;height:240px;border-radius:14px}
+  .overlay{position:absolute;inset:0;pointer-events:auto}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.95rem;color:var(--muted)}
+  .pill{
+    border:1px solid var(--ring);
+    border-radius:999px;
+    padding:4px 10px;
+    background:#fff;
+  }
+  .locked{opacity:.7}
+
+  /* Cute separators */
+  .hr{
+    height:1px; background: linear-gradient(90deg, transparent, var(--ring), transparent);
+    margin:14px 0;
+  }
+
+  /* Tiny sparkle hint */
+  .sparkle::after{
+    content:" ✨";
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <h1>Rina’s iPhone Ringtone Maker <span aria-hidden="true">♡</span></h1>
+      <div class="subtitle">Make a cute 29-second iPhone ringtone with a pastel waveform</div>
+    </div>
+  </header>
+
+  <fieldset>
+    <legend>1) Load audio (MP3 works best) ♫</legend>
+    <input id="fileInput" type="file" accept="audio/mpeg,audio/mp3,audio/*" />
+    <div id="meta" class="muted">No file yet. Pick a track you love 💖</div>
+    <div class="legend" id="infoLine" style="display:none;margin-top:8px">
+      <span class="pill">Length: <span id="durLbl" class="mono">--:--</span></span>
+      <span class="pill">Start: <span id="startLbl" class="mono">0.00 s</span></span>
+      <span class="pill">End: <span id="endLbl" class="mono">29.00 s</span></span>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>2) Pick your 29-second moment ✨</legend>
+    <div class="wave-wrap">
+      <canvas id="wave"></canvas>
+      <canvas id="overlay" class="overlay"></canvas>
+    </div>
+    <div class="row">
+      <label for="startNum">Precise start (s):</label>
+      <input id="startNum" type="number" min="0" step="0.01" value="0" disabled />
+    </div>
+    <div id="tip" class="muted">Tap the waveform to jump; drag the pink box or its edges to adjust. It auto-plays from your selection.</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>3) Preview & Export ♬</legend>
+    <div class="controls">
+      <button id="playSel" class="sparkle" disabled>Preview 29s</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="exportBtn" class="sparkle" disabled>Export Ringtone (WAV)</button>
+    </div>
+    <div id="status" class="muted"></div>
+    <div class="hr"></div>
+    <div id="downloadArea" style="margin-top:6px"></div>
+  </fieldset>
+</div>
+
+<script>
+(() => {
+  /* ===== DOM refs ===== */
+  const $ = id => document.getElementById(id);
+  const fileInput = $('fileInput');
+  const meta = $('meta');
+  const durLbl = $('durLbl');
+  const startLbl = $('startLbl');
+  const endLbl = $('endLbl');
+  const infoLine = $('infoLine');
+  const startNum = $('startNum');
+  const tip = $('tip');
+  const playSel = $('playSel');
+  const stopBtn = $('stopBtn');
+  const exportBtn = $('exportBtn');
+  const statusEl = $('status');
+  const downloadArea = $('downloadArea');
+  const wave = $('wave');
+  const overlay = $('overlay');
+
+  /* ===== Theme colors from CSS vars ===== */
+  const css = getComputedStyle(document.documentElement);
+  const COLOR_WAVE_BG   = css.getPropertyValue('--wave-bg').trim()   || '#ffe6f2';
+  const COLOR_WAVE_MID  = css.getPropertyValue('--wave-mid').trim()  || '#f8bad4';
+  const COLOR_WAVE_BAR  = css.getPropertyValue('--wave-bar').trim()  || '#ff73b3';
+  const COLOR_SELECT    = css.getPropertyValue('--select-fill').trim()|| 'rgba(255,115,179,.16)';
+  const COLOR_STROKE    = css.getPropertyValue('--select-stroke').trim() || '#ff73b3';
+  const COLOR_PLAYLINE  = css.getPropertyValue('--playline').trim()  || '#7ee787';
+
+  /* ===== Constants ===== */
+  const CLIP_SECONDS = 29.0;
+  const MIN_HANDLE_PX = 8;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  /* ===== State ===== */
+  let audioCtx = null, buffer = null, currentSource = null, playingTicker = null, fileNameBase='clip';
+  let peaks=null, selStart=0, selectionLocked=false;
+
+  /* ===== Audio helpers ===== */
+  function ensureCtx(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }
+  function tryResume(){ if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }
+  ['pointerdown','touchstart','click','keydown'].forEach(ev=>document.addEventListener(ev,tryResume,{once:true,capture:true}));
+
+  /* ===== UI helpers ===== */
+  function setStatus(t=''){ statusEl.textContent=t; }
+  function fmtTime(s){ if(!isFinite(s)) return '--:--'; s=Math.max(0,s); const m=Math.floor(s/60); const sec=(s%60).toFixed(2).padStart(5,'0'); return `${m}:${sec}`; }
+  function clampStart(v){ if(!buffer) return 0; const maxStart=Math.max(0,buffer.duration-CLIP_SECONDS); return Math.min(Math.max(0,v),maxStart); }
+  function enableUI(on){ [startNum, playSel, exportBtn].forEach(el=>el.disabled=!on); }
+
+  function getCanvasCSSSize(el){ const r=el.getBoundingClientRect(); return {w:Math.max(1,Math.floor(r.width)),h:Math.max(1,Math.floor(r.height))}; }
+  function sizeCanvases(){ const {w,h}=getCanvasCSSSize(wave); wave.width=w*dpr; wave.height=240*dpr; overlay.width=wave.width; overlay.height=wave.height; }
+
+  /* ===== Peaks ===== */
+  function computePeaks(buf,widthPx){
+    const ch=Math.min(2,buf.numberOfChannels);
+    const L=buf.getChannelData(0); const R=ch>1?buf.getChannelData(1):null;
+    const cols=Math.max(1,widthPx||(getCanvasCSSSize(wave).w*dpr)||600);
+    const samples=buf.length; const block=Math.max(1,Math.ceil(samples/cols));
+    const out=new Float32Array(cols);
+    for(let i=0;i<cols;i++){ const s=i*block,e=Math.min(s+block,samples); let min=1,max=-1;
+      for(let j=s;j<e;j++){ const v=R?(L[j]+R[j])/2:L[j]; if(v<min)min=v; if(v>max)max=v; }
+      out[i]=Math.max(Math.abs(min),Math.abs(max))||0;
+    }
+    let m=0; for(let i=0;i<cols;i++) if(out[i]>m) m=out[i]; if(m<1e-6)m=1; for(let i=0;i<cols;i++) out[i]/=m;
+    return out;
+  }
+
+  /* ===== Draw ===== */
+  function drawWave(){
+    const ctx=wave.getContext('2d');
+    ctx.clearRect(0,0,wave.width,wave.height);
+    ctx.fillStyle=COLOR_WAVE_BG; ctx.fillRect(0,0,wave.width,wave.height);
+    if(!peaks) return;
+    const mid=Math.floor(wave.height/2);
+    ctx.fillStyle=COLOR_WAVE_MID; ctx.fillRect(0,mid,wave.width,1);
+    ctx.fillStyle=COLOR_WAVE_BAR; const amp=wave.height*0.45;
+    const cols=Math.min(peaks.length,wave.width);
+    for(let x=0;x<cols;x++){ const y=peaks[x]*amp; ctx.fillRect(x,mid-y,1,y*2); }
+    drawOverlay();
+  }
+
+  function drawOverlay(){
+    const w=overlay.width,h=overlay.height;
+    const ctx=overlay.getContext('2d'); ctx.clearRect(0,0,w,h);
+    const sx=timeToX(selStart), ex=timeToX(selStart+CLIP_SECONDS);
+    const left=Math.max(0,Math.min(sx,ex)), right=Math.max(sx,ex);
+
+    ctx.fillStyle='rgba(0,0,0,0.10)'; /* subtle dim outside */
+    if(left>0) ctx.fillRect(0,0,left,h);
+    if(right<w) ctx.fillRect(right,0,w-right,h);
+
+    ctx.fillStyle=COLOR_SELECT; ctx.fillRect(left,0,Math.max(MIN_HANDLE_PX,right-left),h);
+
+    ctx.strokeStyle=COLOR_STROKE; ctx.lineWidth=2;
+    ctx.strokeRect(left+1,1,Math.max(1,right-left)-2,h-2);
+
+    ctx.fillStyle=COLOR_STROKE;
+    ctx.fillRect(Math.max(0,left-2),0,4,h);
+    ctx.fillRect(Math.min(w-4,right-2),0,4,h);
+
+    if(currentSource){
+      const tNow=audioCtx.currentTime,off=currentSource._offset||0,started=currentSource._started||0;
+      const playT=Math.max(0,tNow-started)+off; const px=timeToX(playT);
+      ctx.fillStyle=COLOR_PLAYLINE; ctx.fillRect(px|0,0,2,h);
+    }
+  }
+
+  function timeToX(t){ const dur=buffer?buffer.duration:1; const w=wave.width; return Math.max(0,Math.min(w,(t/dur)*w)); }
+  function xToTime(x){ const dur=buffer?buffer.duration:1; const w=wave.width; return Math.max(0,Math.min(dur,(x/w)*dur)); }
+
+  /* ===== Dragging (move edges or box) ===== */
+  let dragMode=null,dragStartX=0,dragSelStart=0;
+  overlay.addEventListener('pointerdown',e=>{
+    if(!buffer) return;
+    if(selectionLocked) return; // lock when track ≤ 29s
+    overlay.setPointerCapture(e.pointerId);
+    const x=(e.offsetX)*dpr;
+    const sx=timeToX(selStart),ex=timeToX(selStart+CLIP_SECONDS);
+    const nearLeft=Math.abs(x-sx)<8*dpr, nearRight=Math.abs(x-ex)<8*dpr;
+    if(nearLeft) dragMode='left';
+    else if(nearRight) dragMode='right';
+    else if(x>sx&&x<ex) dragMode='move';
+    else { selStart=clampStart(xToTime(x)); syncStartUI(); autoPlay(); drawWave(); return; }
+    dragStartX=x; dragSelStart=selStart;
+  });
+  overlay.addEventListener('pointermove',e=>{
+    if(!buffer||!dragMode) return;
+    const x=(e.offsetX)*dpr,dx=x-dragStartX,dt=(dx/wave.width)*buffer.duration;
+    if(dragMode==='move'||dragMode==='left') selStart=clampStart(dragSelStart+dt);
+    else if(dragMode==='right'){ const desiredEnd=clampStart(dragSelStart+CLIP_SECONDS+dt); selStart=clampStart(desiredEnd-CLIP_SECONDS); }
+    syncStartUI(false); drawWave();
+  });
+  function endDrag(){ if(!dragMode) return; dragMode=null; autoPlay(); }
+  overlay.addEventListener('pointerup',endDrag);
+  overlay.addEventListener('pointercancel',endDrag);
+  overlay.addEventListener('pointerleave',endDrag);
+
+  /* ===== File load ===== */
+  fileInput.addEventListener('change',async e=>{
+    stopPlayback(); peaks=null; buffer=null; downloadArea.innerHTML=''; setStatus('Decoding…');
+    const file=e.target.files&&e.target.files[0]; if(!file){ meta.textContent='No file yet. Pick a track you love 💖'; setStatus(''); return; }
+    fileNameBase=file.name.replace(/\.[^.]+$/,'')||'clip'; ensureCtx();
+    try{
+      const ab=await file.arrayBuffer();
+      buffer=await audioCtx.decodeAudioData(ab);
+    }catch{
+      setStatus('Failed to decode audio');
+      return;
+    }
+
+    meta.innerHTML=`Loaded: <strong>${file.name}</strong> — ${fmtTime(buffer.duration)} — ${buffer.numberOfChannels} ch @ ${buffer.sampleRate} Hz`;
+    infoLine.style.display=''; durLbl.textContent=fmtTime(buffer.duration);
+
+    const maxStart = Math.max(0, buffer.duration - CLIP_SECONDS);
+    selectionLocked = (maxStart === 0);
+    startNum.disabled = selectionLocked;
+    tip.classList.toggle('locked', selectionLocked);
+    setStatus(selectionLocked
+      ? 'Track is ≤ 29s → selection fixed at 0–29s. Load a longer file to choose a window.'
+      : 'Ready. Adjust your perfect 29-second moment.');
+
+    sizeCanvases();
+    requestAnimationFrame(()=>{
+      sizeCanvases();
+      peaks=computePeaks(buffer,wave.width);
+      selStart=0;
+      enableUI(true);
+      syncStartUI();
+      drawWave();
+    });
+
+    new ResizeObserver(()=>{ if(buffer){ sizeCanvases(); peaks=computePeaks(buffer,wave.width); drawWave(); }}).observe(wave);
+  });
+
+  /* ===== Numeric input ===== */
+  startNum.addEventListener('change',()=>{
+    if(!buffer || selectionLocked) return;
+    selStart=clampStart(parseFloat(startNum.value)||0);
+    syncStartUI(); autoPlay(); drawWave();
+  });
+
+  /* ===== Playback ===== */
+  function stopPlayback(){
+    if(playingTicker){ cancelAnimationFrame(playingTicker); playingTicker=null; }
+    if(currentSource){ try{ currentSource.stop(); }catch{} currentSource.disconnect(); currentSource=null; }
+    stopBtn.disabled=true; drawWave();
+  }
+  function tick(){ if(!currentSource) return; drawWave(); playingTicker=requestAnimationFrame(tick); }
+  function play(off,dur){
+    stopPlayback(); ensureCtx(); if(!buffer) return;
+    const src=audioCtx.createBufferSource(); src.buffer=buffer; src.connect(audioCtx.destination);
+    src._offset=off; src._started=audioCtx.currentTime; currentSource=src;
+    stopBtn.disabled=false;
+    let d=dur; if(off+d>buffer.duration) d=Math.max(0,buffer.duration-off);
+    try{ src.start(0,off,d); }catch{ src.start(0,off); }
+    tick(); setTimeout(()=>stopPlayback(),(d*1000)+60);
+  }
+  function autoPlay(){ if(buffer) play(selStart,CLIP_SECONDS); }
+  playSel.addEventListener('click',()=>{ if(buffer) play(selStart,CLIP_SECONDS); });
+  stopBtn.addEventListener('click',stopPlayback);
+
+  /* ===== Export WAV ===== */
+  exportBtn.addEventListener('click',async ()=>{
+    if(!buffer) return; stopPlayback(); setStatus('Rendering…');
+    const sr=buffer.sampleRate,frames=Math.round(CLIP_SECONDS*sr),ch=buffer.numberOfChannels;
+    const off=new OfflineAudioContext(ch,frames,sr);
+    const src=off.createBufferSource(); src.buffer=buffer; src.connect(off.destination); src.start(0,selStart,CLIP_SECONDS);
+    let rendered; try{ rendered=await off.startRendering(); }catch{ setStatus('Render failed'); return; }
+    const blob=bufferToWav(rendered),url=URL.createObjectURL(blob),ts=new Date().toISOString().replace(/[:.]/g,'-');
+    const outName=`Rina_iPhone_Ringtone_${fileNameBase}_${selStart.toFixed(2)}s_29s_${ts}.wav`;
+    downloadArea.innerHTML='';
+    const a=document.createElement('a'); a.href=url; a.download=outName; a.textContent=`⬇️ Download ${outName}`;
+    downloadArea.appendChild(a);
+    setStatus('Done. Ringtone ready 💗');
+  });
+
+  /* ===== WAV encoding ===== */
+  function bufferToWav(buf){
+    const numCh=buf.numberOfChannels,sr=buf.sampleRate,frames=buf.length,bps=2;
+    const dataBytes=frames*numCh*bps,total=44+dataBytes;
+    const ab=new ArrayBuffer(total),v=new DataView(ab);
+    write(0,'RIFF'); v.setUint32(4,36+dataBytes,true); write(8,'WAVE');
+    write(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true);
+    v.setUint16(22,numCh,true); v.setUint32(24,sr,true);
+    v.setUint32(28,sr*numCh*bps,true); v.setUint16(32,numCh*bps,true);
+    v.setUint16(34,16,true); write(36,'data'); v.setUint32(40,dataBytes,true);
+    let o=44; const chans=[]; for(let c=0;c<numCh;c++) chans.push(buf.getChannelData(c));
+    for(let i=0;i<frames;i++){ for(let c=0;c<numCh;c++){ let s=Math.max(-1,Math.min(1,chans[c][i])); s=s<0?s*0x8000:s*0x7FFF; v.setInt16(o,s|0,true); o+=2; } }
+    return new Blob([v],{type:'audio/wav'});
+
+    function write(o,str){ for(let i=0;i<str.length;i++) v.setUint8(o+i,str.charCodeAt(i)); }
+  }
+
+  function syncStartUI(upd=true){
+    const end=selStart+CLIP_SECONDS;
+    if(upd) startNum.value=selStart.toFixed(2);
+    startLbl.textContent=selStart.toFixed(2)+' s';
+    endLbl.textContent=end.toFixed(2)+' s';
+  }
+
+  /* Init */
+  sizeCanvases();
+  const ctx=wave.getContext('2d'); ctx.fillStyle=COLOR_WAVE_BG; ctx.fillRect(0,0,wave.width,wave.height);
+})();
+</script>
+</body>
+</html>
